@@ -6,12 +6,14 @@ import sys
 
 PORT = 6788
 
+# '172.16.14.47'
+
 
 class ChatServer(threading.Thread):
     def __init__(self, port, host='localhost'):
         super().__init__(daemon=True)
         self.port = port
-        self.host = '172.16.14.47'
+        self.host = socket.gethostname()
         self.server = socket.socket(
             socket.AF_INET,
             socket.SOCK_STREAM,
