@@ -1,19 +1,18 @@
+#! /usr/local/bin/python3
 from client import ChatClient
 import threading
 import socket
 import sys
 
 
-PORT = 6788
-
-# '172.16.14.47'
+PORT = 6783
 
 
 class ChatServer(threading.Thread):
     def __init__(self, port, host='localhost'):
         super().__init__(daemon=True)
         self.port = port
-        self.host = socket.gethostname()
+        self.host = host
         self.server = socket.socket(
             socket.AF_INET,
             socket.SOCK_STREAM,
@@ -26,6 +25,7 @@ class ChatServer(threading.Thread):
         except socket.error:
             print('Bind failed {}'.format(socket.error))
             sys.exit()
+
         self.server.listen(10)
 
     def parser(self, id, nick, conn, message):
@@ -35,22 +35,30 @@ class ChatServer(threading.Thread):
             if data[0] == '@quit':
                 conn.sendall(b'You have left the chat.')
                 reply = nick.encode() + b'has left the channel.\n'
-                [c.conn.sendall(reply)
-                 for c in self.client_pool if len(self.client_pool)]
+                [c.conn.sendall(reply) for c in self.client_pool if len(self.client_pool)]
                 self.client_pool = [c for c in self.client_pool if c.id != id]
                 conn.close()
+
+            elif data[0] == '@list':
+
+                nicks = []
+                for c in self.client_pool:
+                    nicks.append(c.nick)
+                conn.sendall(b'Here is the list of connected users:' + str(nicks).encode())
+                reply = str(nicks).encode()
+                [c.conn.sendall(reply) for c in self.client_pool if len(self.client_pool)]
+                self.client_pool = [c for c in self.client_pool if c.id != id]
+
 
             else:
                 conn.sendall(b'Invalid command. Please try again.\n')
 
         else:
             reply = nick.encode() + b': ' + message
-            [c.conn.sendall(reply)
-             for c in self.client_pool if len(self.client_pool)]
+            [c.conn.sendall(reply) for c in self.client_pool if len(self.client_pool)]
 
     def run_thread(self, id, nick, conn, addr):
         print('{} connected with {}:{}'.format(nick, addr[0], str(addr[1])))
-
         try:
             while True:
                 data = conn.recv(4096)
