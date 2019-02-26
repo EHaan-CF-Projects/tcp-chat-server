@@ -5,7 +5,7 @@ import socket
 import sys
 
 
-PORT = 6783
+PORT = 6784
 
 
 class ChatServer(threading.Thread):
@@ -47,8 +47,18 @@ class ChatServer(threading.Thread):
                 conn.sendall(b'Here is the list of connected users:' + str(nicks).encode())
                 reply = str(nicks).encode()
                 [c.conn.sendall(reply) for c in self.client_pool if len(self.client_pool)]
-                self.client_pool = [c for c in self.client_pool if c.id != id]
 
+            elif data[0] == '@nickname':
+                # import pdb; pdb.set_trace()
+                nickname = data[1]
+                for i in range(len(self.client_pool)):
+                    if self.client_pool[i].nick == nick:
+                        # prev_name = self.client_pool[i].nick
+                        self.client_pool[i].nick = nickname.replace('\n', '')
+                conn.sendall(b'Your new nickname is ' + nickname.encode())
+
+            elif dat[0] == '@dm':
+                conn.sendall(b'sending message')
 
             else:
                 conn.sendall(b'Invalid command. Please try again.\n')
