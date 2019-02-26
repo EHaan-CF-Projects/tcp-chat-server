@@ -4,14 +4,14 @@ import socket
 import sys
 
 
-PORT = 6789
+PORT = 6788
 
 
 class ChatServer(threading.Thread):
     def __init__(self, port, host='localhost'):
         super().__init__(daemon=True)
         self.port = port
-        self.host = host
+        self.host = '172.16.14.47'
         self.server = socket.socket(
             socket.AF_INET,
             socket.SOCK_STREAM,
@@ -39,7 +39,7 @@ class ChatServer(threading.Thread):
                 conn.close()
 
             else:
-                connn.sendall(b'Invalid command. Please try again.\n')
+                conn.sendall(b'Invalid command. Please try again.\n')
 
         else:
             reply = nick.encode() + b': ' + message
