@@ -5,7 +5,7 @@ import socket
 import sys
 
 
-PORT = 6784
+PORT = 6783
 
 
 class ChatServer(threading.Thread):
@@ -28,6 +28,7 @@ class ChatServer(threading.Thread):
 
         self.server.listen(10)
 
+
     def parser(self, id, nick, conn, message):
         if message.decode().startswith('@'):
             data = message.decode().split(maxsplit=1)
@@ -35,37 +36,45 @@ class ChatServer(threading.Thread):
             if data[0] == '@quit':
                 conn.sendall(b'You have left the chat.')
                 reply = nick.encode() + b'has left the channel.\n'
-                [c.conn.sendall(reply) for c in self.client_pool if len(self.client_pool)]
+                [c.conn.sendall(reply)
+                    for c in self.client_pool if len(self.client_pool)]
                 self.client_pool = [c for c in self.client_pool if c.id != id]
                 conn.close()
 
             elif data[0] == '@list':
-
-                nicks = []
                 for c in self.client_pool:
-                    nicks.append(c.nick)
-                conn.sendall(b'Here is the list of connected users:' + str(nicks).encode())
-                reply = str(nicks).encode()
-                [c.conn.sendall(reply) for c in self.client_pool if len(self.client_pool)]
+                    name = c.nick
+                    reply = name.encode() + b'\n'
+                    [c.conn.sendall(reply) for c in self.client_pool]
 
             elif data[0] == '@nickname':
-                # import pdb; pdb.set_trace()
-                nickname = data[1]
-                for i in range(len(self.client_pool)):
-                    if self.client_pool[i].nick == nick:
-                        # prev_name = self.client_pool[i].nick
-                        self.client_pool[i].nick = nickname.replace('\n', '')
-                conn.sendall(b'Your new nickname is ' + nickname.encode())
+                nickname = data[1].strip()
+                for c in self.client_pool:
+                    if c.id == id:
+                        c.nick = nickname
+                    conn.sendall(b'Your new nickname is ' + nickname.encode())
+            elif data[0] == '@dm':
+                dm_parts = data[1].split(maxsplit=1)
+                recipient_name = dm_parts[0]
+                message = dm_parts[1].encode()
 
-            elif dat[0] == '@dm':
-                conn.sendall(b'sending message')
+                found = False
+                for client in self.client_pool:
+                    if client.nick == recipient_name:
+                        client.conn.sendall(message)
+                        found = True
+
+
+                if not found:
+                    conn.sendall(b'Check recipient name')
 
             else:
                 conn.sendall(b'Invalid command. Please try again.\n')
 
         else:
             reply = nick.encode() + b': ' + message
-            [c.conn.sendall(reply) for c in self.client_pool if len(self.client_pool)]
+            [c.conn.sendall(reply)
+             for c in self.client_pool if len(self.client_pool)]
 
     def run_thread(self, id, nick, conn, addr):
         print('{} connected with {}:{}'.format(nick, addr[0], str(addr[1])))
